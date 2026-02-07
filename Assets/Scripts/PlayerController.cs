@@ -1,46 +1,78 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
+using UnityEngine.UIElements;
 
 public class PlayerController : MonoBehaviour
 {
-    [SerializeField] float thrustForce = 1f;
-    [SerializeField] float maxSpeed = 5f;
-    Rigidbody2D rb;
-    public GameObject boosterFlame;
+    [SerializeField] GameObject boosterFlame;
 
+    float elapsedTime = 0f;
+    float score = 0f;
+
+    [SerializeField] float scoreMultiplier = 10f;
+    [SerializeField] float thrustForce = 1f;
+
+    Rigidbody2D rb;
+
+    [SerializeField] UIDocument uiDocument;
+    Label scoreText;
+    Button restartButton;
+
+    [SerializeField] GameObject explosionEffect;
+
+    [SerializeField] GameObject borderParent;
+        
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        scoreText = uiDocument.rootVisualElement.Q<Label>("ScoreLabel");
+        restartButton = uiDocument.rootVisualElement.Q<Button>("RestartButton");
+        restartButton.style.display = DisplayStyle.None;
+        restartButton.clicked += ReloadScene;
+
     }
 
+    // Update is called once per frame
     void Update()
     {
-        if (Mouse.current.leftButton.isPressed)
-        {
+        elapsedTime += Time.deltaTime;
+        score = Mathf.FloorToInt(elapsedTime * scoreMultiplier);
+        scoreText.text = "Score: " + score;
+        
+        if (Mouse.current.leftButton.isPressed) {
+            
             // Calculate mouse direction
             Vector3 mousePos = Camera.main.ScreenToWorldPoint(Mouse.current.position.value);
             Vector2 direction = (mousePos - transform.position).normalized;
-
+            
             // Move player in direction of mouse
             transform.up = direction;
             rb.AddForce(direction * thrustForce);
-            if (rb.linearVelocity.magnitude > maxSpeed)
-            {
-                rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed;
-            }
+
         }
+
         if (Mouse.current.leftButton.wasPressedThisFrame)
         {
-        boosterFlame.SetActive(true);
+            boosterFlame.SetActive(true);
         }
         else if (Mouse.current.leftButton.wasReleasedThisFrame)
         {
-        boosterFlame.SetActive(false);
+            boosterFlame.SetActive(false);
         }
+        
     }
 
     void OnCollisionEnter2D(Collision2D collision)
     {
         Destroy(gameObject);
+        Instantiate(explosionEffect, transform.position, transform.rotation);
+        borderParent.SetActive(false);
+        restartButton.style.display = DisplayStyle.Flex;
     }
+
+    void ReloadScene() {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+    }
+
 }
